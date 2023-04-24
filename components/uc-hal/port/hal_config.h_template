@@ -1,0 +1,122 @@
+/*
+ * @file hal_config.h
+ * @brief HAL CONFIG port
+ *        A template for HAL configuration file
+ * @author Emiliano Gonzalez (egonzalez . hiperion @ gmail . com))
+ * @version 0.1
+ * @date 2023
+ * @copyright MIT License
+ * @see https://github.com/hiperiondev/esp32-microvium
+ * @note This is based on other projects. See license files
+ */
+
+#ifndef HAL_CONFIG_H
+#define HAL_CONFIG_H
+
+//  Note:
+//  The HAL_ENABLE_xxx definitions control which HAL modules will be used by 
+//  your application. You should enable only the modules you use, to avoid 
+//  compilation of unnecessary code.
+
+// -----------------------------------------------------------------------------
+//  CORE MODULE CONFIGURATION SECTION
+// -----------------------------------------------------------------------------
+
+// If defined as 1, the core will support power management.
+// If defined as 0, then core will not support power modes
+// like in older versions of the hal - for example frequency
+// could be set just by definition
+#define HAL_CORE_USE_POWER_MANAGEMENT			0
+
+// -----------------------------------------------------------------------------
+//  HEAP MODULE CONFIGURATION SECTION
+// -----------------------------------------------------------------------------
+
+// If HAL_HEAP_MODE is defined as 0, the heap will be serviced by malloc() and free(), 
+// unless there is a default OS implementation (like pvPortMalloc and vPortFree 
+// for FreeRTOS). This is the default mode - set this if you don't know what else 
+// to do.
+// If HAL_HEAP_MODE is defined as 1, the heap will be serviced by simple internal 
+// heap manager. This also means, that whenever possible, OS heap will also be serviced 
+// by the internal heap manager. The internal memory manager does NOT provide
+// methods for freeing allocated heap space. 
+// If HAL_HEAP_MODE is defined as 2, the heap will be serviced by more advanced internal 
+// heap manager. This also means, that whenever possible, OS heap will also be serviced 
+// by the internal heap manager. The internal memory manager does provide
+// methods for freeing allocated heap space. 
+// If HAL_HEAP_MODE is defined as 3, the user is responsible for providing own implementation
+// of HEAP_Alloc and HEAP_Free functions.
+// In modes 1, 2 and 3 the HAL_HEAP_SIZE definition should be set to non-zero value.
+#define HAL_HEAP_MODE			                0
+
+// Size of heap when internal heap manager is used (HAL_HEAP_MODE == 1 or 2)
+#define HAL_HEAP_SIZE							0
+
+// -----------------------------------------------------------------------------
+//  GPIO MODULE CONFIGURATION SECTION
+// -----------------------------------------------------------------------------
+
+// If defined as 1, the GPIO module will be enabled
+#define HAL_ENABLE_GPIO							1
+
+// For each GPIO pin you want to provide for your application, you should prepare
+// at least 3 definitions, specifying port, pin and at least one configuration.
+
+// -----------------------------------------------------------------------------
+//  DIAG MODULE CONFIGURATION SECTION
+// -----------------------------------------------------------------------------
+
+// If defined as 1, the DIAG module will be enabled
+#define HAL_ENABLE_DIAG							0
+
+// If defined as 1, the DIAG module will use buffering
+#define HAL_DIAG_USE_ERROR_BUFFERING			1
+
+// This definition controlls how many errors will be buffered when DIAG 
+#define HAL_DIAG_ERROR_BUFFER_SIZE				30
+
+// If defined as 1, the DIAG module will use error descriptions
+#define HAL_DIAG_USE_ERROR_DESCRIPTIONS			1
+
+// If defined as 1, the DIAG module will use error time stamps
+#define HAL_DIAG_USE_ERROR_TIME_STAMPS			1
+
+// If defined as 1, the DIAG module will output formatted data
+#define HAL_DIAG_ERROR_SEND_AS_FORMATED_DATA	1
+
+// -----------------------------------------------------------------------------
+//  IOBUF MODULE CONFIGURATION SECTION
+// -----------------------------------------------------------------------------
+
+// If defined as 1, the IOBUF module will be enabled, but if defined as 0,
+// the IOBUF will be disabled only if HAL_ENABLE_IO is defined as 0
+#define HAL_ENABLE_IOBUF                        1
+
+// -----------------------------------------------------------------------------
+//  IO MODULE CONFIGURATION SECTION
+// -----------------------------------------------------------------------------
+
+// If defined as 1, the IO module will be enabled
+#define HAL_ENABLE_IO							1
+
+// If defined as 1, the OS integration mode will be enabled for IO operations
+#define HAL_IO_OS_INTEGRATION 					0
+
+// If defined as 1, events in IO module will be enabled
+#define HAL_IO_USE_EVENTS						1
+
+// -----------------------------------------------------------------------------
+//  TIM MODULE CONFIGURATION SECTION
+// -----------------------------------------------------------------------------
+
+// If defined as 1, the TIM module will be enabled
+#define HAL_ENABLE_TIM							0
+
+// -----------------------------------------------------------------------------
+//  OS MODULE CONFIGURATION SECTION
+// -----------------------------------------------------------------------------
+
+// If defined as 1, the OS module will be enabled
+#define HAL_ENABLE_OS							0
+
+#endif /* HAL_CONFIG_H */

@@ -1,0 +1,67 @@
+The HALFRED source code is licensed by the BSD license text provided below.  
+Please note, that the official HALFRED download package may include some 
+third party software, which IS LICENSED SEPARATELY FROM HALFRED. In case of 
+any doubt consult the particular source file header or contact the authors.
+
+        - THE BSD LICENSE TEXT -
+
+HALFRED (Hardware Abstraction Layer For Real-time Embedded Designs)
+version 0.2.0
+Copyright (c) 2011, AGH University of Science and Technology in Krakow
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, 
+are permitted provided that the following conditions are met:
+
+    1) Redistributions of source code must retain the above copyright notice, 
+       this list of conditions and the following disclaimer. 
+    2) Redistributions in binary form must reproduce the above copyright notice, 
+       this list of conditions and the following disclaimer in the documentation 
+       and/or other materials provided with the distribution. 
+    3) Neither the name of the AGH University of Science and Technology nor the 
+       names of its contributors may be used to endorse or promote products 
+       derived from this software without specific prior written permission.
+    
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY 
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE 
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+       - END OF THE BSD LICENSE TEXT -
+
+Additional notes:
+Linking HALFRED source code statically or dynamically with other modules 
+is making a combined work based on HALFRED. In such case the end user of the 
+combined work (in example a product) must be informed that a particular version 
+of HALFRED had been used. 
+
+Original headers:
+
+ ================================================================================
+ HALFRED ver. 0.2.0 - Copyright (C) 2011 AGH UST
+
+ This file is part of the
+ Hardware Abstraction Layer For Real-time Embedded Designs (HALFRED) project.
+ HALFRED is developed at the Department of Electronics,
+ AGH University of Science and Technology in Krakow, Poland.
+
+ The HALFRED project is licensed under the BSD license.
+ You can use it for free for both commercial and non-commercial, open source
+ projects, as long as you provide required copyright information to end users.
+ See LICENSE.txt for details or visit project home page at:
+ http://www.wsn.agh.edu.pl/?q=halfred
+
+ --------------------------------------------------------------------------------
+ Authors:       Artur Lipowski, Łukasz Krzak, Piotr Wojtowicz, Dominik Rzepka
+ Purpose:       HALFRED
+ Compiler:      GCC
+ Hardware:      independent
+ Doc:           doxygen

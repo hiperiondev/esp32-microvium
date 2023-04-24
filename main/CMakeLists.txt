@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS
+        main.c
+    INCLUDE_DIRS
+        .
+    REQUIRES
+        console
+        microvium
+        uc-hal
+        esp32-tftp-server
+        nvs_flash
+)  
