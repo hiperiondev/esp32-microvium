@@ -14,9 +14,11 @@
 #define MICROVIUM_HAL_WIFI_H_
 
 enum MICROVIUM_HAL_ID_WIFI {
-    MICROVIUM_HAL_ID_WIFI_CONNECT_STA = 65535,
+    MICROVIUM_HAL_ID_WIFI_CONNECT_STA  = 65535,
+    MICROVIUM_HAL_ID_WIFI_IS_CONNECTED = 65534,
 };
 
 mvm_TeError microvium_wifi_connect_sta(mvm_VM* vm, mvm_HostFunctionID hostFunctionID, mvm_Value* result, mvm_Value* args, uint8_t argCount);
+mvm_TeError microvium_wifi_IsConnected(mvm_VM *vm, mvm_HostFunctionID hostFunctionID, mvm_Value *result, mvm_Value *args, uint8_t argCount);
 
 #endif /* MICROVIUM_HAL_WIFI_H_ */

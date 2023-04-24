@@ -11,7 +11,6 @@
  */
 
 #define HAL_ENABLE_WIFI 1
-
 #include "hal.h"
 #include "microvium_hal.h"
 #include "microvium_hal_wifi.h"
@@ -32,3 +31,10 @@ mvm_TeError microvium_wifi_connect_sta(mvm_VM *vm, mvm_HostFunctionID hostFuncti
 
     return MVM_E_SUCCESS;
 }
+
+mvm_TeError microvium_wifi_IsConnected(mvm_VM *vm, mvm_HostFunctionID hostFunctionID, mvm_Value *result, mvm_Value *args, uint8_t argCount) {
+    *result = mvm_newBoolean(wifi_connected);
+
+    return MVM_E_SUCCESS;
+}
+

@@ -14,9 +14,9 @@
 #define HAL_MICROVIUM_HAL_H_
 
 #include "microvium.h"
+#include "microvium_hal_configure.h"
 
 #ifdef MICROVIUM_HAL_WIFI
-#define HAL_ENABLE_WIFI
 #include "microvium_hal_wifi.h"
 #endif
 

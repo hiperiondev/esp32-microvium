@@ -6,6 +6,7 @@ idf_component_register(
     REQUIRES
         console
         microvium
+        microvium-uc-hal
         uc-hal
         esp32-tftp-server
         nvs_flash
