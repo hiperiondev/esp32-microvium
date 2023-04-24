@@ -38,3 +38,18 @@ mvm_TeError microvium_wifi_IsConnected(mvm_VM *vm, mvm_HostFunctionID hostFuncti
     return MVM_E_SUCCESS;
 }
 
+mvm_TeError microvium_wifi_stop(mvm_VM *vm, mvm_HostFunctionID hostFunctionID, mvm_Value *result, mvm_Value *args, uint8_t argCount) {
+    wifi_stop();
+    return MVM_E_SUCCESS;
+}
+
+mvm_TeError microvium_wifi_scan(mvm_VM *vm, mvm_HostFunctionID hostFunctionID, mvm_Value *result, mvm_Value *args, uint8_t argCount) {
+    hal_wifi_ap_record_t *ap_record = NULL;
+    uint32_t list = wifi_scan(&ap_record);
+
+    // TODO: export ap_record array to microvium
+
+    free(ap_record);
+
+    return MVM_E_SUCCESS;
+}

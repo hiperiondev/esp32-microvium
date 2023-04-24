@@ -10,5 +10,7 @@
  * @note This is based on other projects. See license files
  */
 
-export const Connect = vmImport(65535);
+export const Connect     = vmImport(65535);
 export const IsConnected = vmImport(65534);
+export const Disconnect  = vmImport(65533);
+export const Scan        = vmImport(65532);

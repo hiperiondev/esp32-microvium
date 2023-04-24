@@ -22,7 +22,14 @@ mvm_TeError microvium_hal_resolveImport(mvm_HostFunctionID hostFunctionID, void 
         case MICROVIUM_HAL_ID_WIFI_IS_CONNECTED:
             *out_hostFunction = &microvium_wifi_IsConnected;
             break;
+        case MICROVIUM_HAL_ID_WIFI_STOP:
+            *out_hostFunction = &microvium_wifi_stop;
+            break;
+        case MICROVIUM_HAL_ID_WIFI_SCAN:
+            *out_hostFunction = &microvium_wifi_scan;
+            break;
 #endif
+
         default:
             return MVM_E_FUNCTION_NOT_FOUND;
     }

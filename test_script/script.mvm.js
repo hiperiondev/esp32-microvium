@@ -6,5 +6,6 @@ console.log = vmImport(1);
 function sayHello() {
   console.log('Hello, World!');
   wifi.Connect("test", "test1234");
+  wifi.Disconnect();
 }
 vmExport(1234, sayHello);
