@@ -1,0 +1,5 @@
+Functions IDs used by microvium HAL
+
+WIFI:
+    Connect:     65535
+    IsConnected: 65534
