@@ -124,7 +124,7 @@ static void _wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t 
     }
 }
 
-void wifi_init_sta(const char *ssid, const char *pass) {
+void wifi_connect_sta(const char *ssid, const char *pass) {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     s_wifi_event_group = xEventGroupCreate();

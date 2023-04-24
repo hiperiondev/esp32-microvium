@@ -15,7 +15,6 @@
 
 #include "hal_core.h"
 
-#define HAL_CORE_PORT_ESP32_INTERNAL_OSC        0
 #define HAL_CORE_PORT_ESP32_INTERNAL_OSC        1
 
 /// a variable that keeps count of nested critical sections

@@ -158,7 +158,7 @@ void app_main() {
     free(ap_record);
 
     printf("Connect WIFI\n");
-    wifi_init_sta(WIFI_SSID, WIFI_PASS);
+    wifi_connect_sta(WIFI_SSID, WIFI_PASS);
     TFTP_task_start();
 
     xTaskCreatePinnedToCore(

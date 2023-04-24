@@ -13,6 +13,9 @@
 #ifndef HAL_WIFI_H_
 #define HAL_WIFI_H_
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "hal_port_wifi.h"
 
 typedef enum {
@@ -100,7 +103,7 @@ uint32_t wifi_scan(hal_wifi_ap_record_t **ap_record);
  * @param name AP name
  * @param pass AP password
  */
-void wifi_init_sta(const char *name, const char *pass);
+void wifi_connect_sta(const char *name, const char *pass);
 
 /**
  * @brief Disconnect wifi and stop all related process
