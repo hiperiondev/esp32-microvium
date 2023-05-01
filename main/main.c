@@ -30,7 +30,7 @@
 #include "esp_partition.h"
 #include "hal_fs.h"
 #include "hal_wifi.h"
-#include "esp32_tftp_server.h"
+#include "esp32_ftp_server.h"
 #include "microvium.h"
 
 #define MICROVIUM_HAL_WIFI
@@ -143,7 +143,7 @@ mvm_TeError resolveImport(mvm_HostFunctionID funcID, void *context, mvm_TfHostFu
 void microvium_task(void *pvParameter) {
     mvm_TeError err;
     mvm_VM *vm;
-    uint8_t *snapshot;
+    uint8_t *snapshot = NULL;
     mvm_Value sayHello;
     mvm_Value result;
     FILE *snapshotFile;
@@ -157,17 +157,20 @@ void microvium_task(void *pvParameter) {
         goto endofall;
     }
 
+    long int prev = ftell(snapshotFile);
     fseek(snapshotFile, 0L, SEEK_END);
     snapshotSize = ftell(snapshotFile);
-    rewind(snapshotFile);
+    fseek(snapshotFile, prev, SEEK_SET);
+    ESP_LOGI(TAG, "file length: %ld", snapshotSize);
+
     snapshot = (uint8_t*) malloc(snapshotSize);
     fread(snapshot, 1, snapshotSize, snapshotFile);
     fclose(snapshotFile);
 
     // Restore the VM from the snapshot
-    err = mvm_restore(&vm, snapshot, snapshotSize - 1, NULL, resolveImport);
+    err = mvm_restore(&vm, snapshot, snapshotSize, NULL, resolveImport);
     if (err != MVM_E_SUCCESS) {
-        ESP_LOGI(TAG, "mvm_restore error: %d [%s] (snapshotSize: %ld)", err, microvium_error[err], snapshotSize);
+        ESP_LOGI(TAG, "mvm_restore error: %d [%s]", err, microvium_error[err]);
         goto endofall;
     }
 
@@ -196,37 +199,26 @@ endofall:
 }
 
 void app_main() {
-    //hal_wifi_ap_record_t *ap_record = NULL;
-
     nvs_flash_init();
     fs_init();
 
-    /*
-    uint32_t list = wifi_scan(&ap_record);
-    uint32_t ssid_len = 0;
-    for (uint32_t n = 0; n < list; n++)
-        if (strlen((char*)ap_record[n].ssid) > ssid_len)
-            ssid_len = strlen((char*)ap_record[n].ssid);
-    char ssid[ssid_len + 1];
-    printf("\nScan WIFI\n");
-    for (uint32_t n = 0; n < list; n++) {
-        strcpy(ssid, (char*)ap_record[n].ssid);
-        memset(ssid + strlen(ssid), ' ', ssid_len - strlen((char*)ap_record[n].ssid));
-        ssid[ssid_len] = '\0';
-        printf("    > %s [RSSI: %02d] (cipher: %s)\n", ssid, ap_record[n].rssi, wifi_cypher[ap_record[n].group_cipher]);
-    }
-    printf("\n");
-    free(ap_record);
-
     printf("Connect WIFI\n");
     wifi_connect_sta(WIFI_SSID, WIFI_PASS);
-    TFTP_task_start();
-    */
+
+    // Create FTP server task
+    xTaskCreate(
+            ftp_task,
+            "FTP",
+            1024 * 6,
+            NULL,
+            2,
+            NULL
+            );
 
     xTaskCreatePinnedToCore(
             microvium_task,
             "microvium_task",
-            5000,
+            15000,
             NULL,
             10,
             &microviumtsk_handle,

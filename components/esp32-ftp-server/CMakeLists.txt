@@ -1,13 +1,14 @@
 file(
     GLOB_RECURSE
         SOURCES
-            source/*.c
+            *.c
 )
 
 idf_component_register(
     SRCS ${SOURCES}
     INCLUDE_DIRS
-        include
+        .
     REQUIRES
-        uc-hal
+        esp_wifi
+        lwip
 )

@@ -8,6 +8,6 @@ idf_component_register(
         microvium
         microvium-uc-hal
         uc-hal
-        esp32-tftp-server
+        esp32-ftp-server
         nvs_flash
 )  
