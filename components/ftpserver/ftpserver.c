@@ -1,9 +1,19 @@
 /*
- * This file is part of the MicroPython ESP32 project, https://github.com/loboris/MicroPython_ESP32_psRAM_LoBo
+ * @file ftpserver.c
  *
- * The MIT License (MIT)
+ * @brief FTP Server
+ * @details
+ * This is based on other projects:
+ *   MicroPython ESP32 (https://github.com/loboris/MicroPython_ESP32_psRAM_LoBo)
+ *   Others (see individual files)
  *
- * Copyright (c) 2018 LoBo (https://github.com/loboris)
+ *   please contact their authors for more information.
+ *
+ * @author Emiliano Gonzalez (egonzalez . hiperion @ gmail . com))
+ * @version 0.1
+ * @see https://github.com/hiperiondev/esp32-ftpserver
+ * @date 2023
+ * @copyright The MIT License (MIT)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,12 +33,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-/*
- * This file is based on 'ftp' from Pycom Limited.
- *
- * Author: LoBo, loboris@gmail.com
- * Copyright (c) 2017, LoBo
- */
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -46,22 +50,14 @@
 #include "dirent.h"
 #include "esp_system.h"
 #include "esp_log.h"
-#include "esp_wifi.h"
+#include "esp_netif.h"
 #include "lwip/sockets.h"
-#include "esp32_ftp_server.h"
+#include "ftpserver.h"
 
-const char *FTP_TAG = "ftpserver";
+const char *FTP_TAG = "ftp";
 
-#define FTP_MOUNT_POINT     "/littlefs"
 #define CONFIG_FTP_USER     "test"
 #define CONFIG_FTP_PASSWORD "test"
-
-#define FTPSERVER_USER_PASS_LEN_MAX        32
-#define FTPSERVER_CMD_TIMEOUT_MS           (FTPSERVER_TIMEOUT*1000)
-#define FTPSERVER_BUFFER_SIZE              1024
-#define FTPSERVER_TIMEOUT                  300
-#define FTPSERVER_ALLOC_PATH_MAX           (512)
-#define FTPSEREVR_MAX_ACTIVE_INTERFACES    3
 
 #define FTPSERVER_CMD_PORT                 21
 #define FTPSERVER_ACTIVE_DATA_PORT         20
@@ -71,12 +67,16 @@ const char *FTP_TAG = "ftpserver";
 #define FTPSERVER_DATA_CLIENTS_MAX         1
 #define FTPSERVER_MAX_PARAM_SIZE           (FTPSERVER_ALLOC_PATH_MAX + 1)
 #define FTPSERVER_UNIX_SECONDS_180_DAYS    15552000
-#define FTPSERVER_DATA_TIMEOUT_MS          10000   // 10 seconds
+#define FTPSERVER_DATA_TIMEOUT_MS          10000 // 10 seconds
 #define FTPSERVER_SOCKETFIFO_ELEMENTS_MAX  4
+#define FTPSERVER_USER_PASS_LEN_MAX        32
+#define FTPSERVER_CMD_TIMEOUT_MS           (FTPSERVER_TIMEOUT*1000)
+#define FTPSERVER_BUFFER_SIZE              1024
+#define FTPSERVER_TIMEOUT                  300
+#define FTPSERVER_ALLOC_PATH_MAX           (512)
+#define FTPSEREVR_MAX_ACTIVE_INTERFACES    3
 
-#ifndef MAX
-    #define MAX(x, y) ((x) > (y) ? (x) : (y))
-#endif
+static char ftpserver_mount_point[128];
 
 static int ftp_buff_size = FTPSERVER_BUFFER_SIZE;
 static int ftp_timeout = FTPSERVER_CMD_TIMEOUT_MS;
@@ -92,7 +92,7 @@ static char *ftp_scratch_buffer = NULL;
 static char *ftp_cmd_buffer = NULL;
 static uint8_t ftp_nlist = 0;
 static const ftp_cmd_t ftp_cmd_table[] = {
-        { "FEAT" }, { "SYST" }, { "CDUP" }, { "CWD"  }, { "PWD"  },
+        { "FEAT" }, { "SYST" }, { "CDUP" }, { "CWD" },  { "PWD"  },
         { "XPWD" }, { "SIZE" }, { "MDTM" }, { "TYPE" }, { "USER" },
         { "PASS" }, { "PASV" }, { "LIST" }, { "RETR" }, { "STOR" },
         { "DELE" }, { "RMD"  }, { "MKD"  }, { "RNFR" }, { "RNTO" },
@@ -106,23 +106,10 @@ uint64_t mp_hal_ticks_ms(void) {
 
 int network_get_active_interfaces(void) {
     ESP_LOGI(FTP_TAG, "network_get_active_interfaces");
-    int n_if = 0;
+    int n_if = 2;
 
-    wifi_mode_t mode;
-    esp_err_t ret = esp_wifi_get_mode(&mode);
-    if (ret == ESP_OK) {
-        if (mode == WIFI_MODE_STA) {
-            n_if = 1;
-            net_if[0] = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-        } else if (mode == WIFI_MODE_AP) {
-            n_if = 1;
-            net_if[0] = esp_netif_get_handle_from_ifkey("WIFI_APDEF");
-        } else if (mode == WIFI_MODE_APSTA) {
-            n_if = 2;
-            net_if[0] = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-            net_if[1] = esp_netif_get_handle_from_ifkey("WIFI_APDEF");
-        }
-    }
+    net_if[0] = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    net_if[1] = esp_netif_get_handle_from_ifkey("WIFI_APDEF");
 
     return n_if;
 }
@@ -137,7 +124,7 @@ static void stoupper(char *str) {
 static bool ftp_open_file(const char *path, const char *mode) {
     ESP_LOGI(FTP_TAG, "ftp_open_file: path=[%s]", path);
     char fullname[128];
-    strcpy(fullname, FTP_MOUNT_POINT);
+    strcpy(fullname, ftpserver_mount_point);
     strcat(fullname, path);
     ESP_LOGI(FTP_TAG, "ftp_open_file: fullname=[%s]", fullname);
     ftp_data.fp = fopen(fullname, mode);
@@ -201,9 +188,9 @@ static ftp_result_t ftp_open_dir_for_listing(const char *path) {
         closedir(ftp_data.dp);
         ftp_data.dp = NULL;
     }
-    ESP_LOGI(FTP_TAG, "ftp_open_dir_for_listing path=[%s] MOUNT_POINT=[%s]", path, FTP_MOUNT_POINT);
+    ESP_LOGI(FTP_TAG, "ftp_open_dir_for_listing path=[%s] MOUNT_POINT=[%s]", path, ftpserver_mount_point);
     char fullname[128];
-    strcpy(fullname, FTP_MOUNT_POINT);
+    strcpy(fullname, ftpserver_mount_point);
     strcat(fullname, path);
     ESP_LOGI(FTP_TAG, "ftp_open_dir_for_listing: %s", fullname);
     ftp_data.dp = opendir(fullname);  // Open the directory
@@ -220,7 +207,7 @@ static int ftp_get_eplf_item(char *dest, uint32_t destsize, struct dirent *de) {
 
     // Get full file path needed for stat function
     char fullname[128];
-    strcpy(fullname, FTP_MOUNT_POINT);
+    strcpy(fullname, ftpserver_mount_point);
     strcat(fullname, ftp_path);
     if (fullname[strlen(fullname) - 1] != '/')
         strcat(fullname, "/");
@@ -362,6 +349,7 @@ static bool ftp_create_listening_socket(int32_t *sd, uint32_t port, uint8_t back
 }
 
 static ftp_result_t ftp_wait_for_connection(int32_t l_sd, int32_t *n_sd, uint32_t *ip_addr) {
+    esp_err_t err;
     struct sockaddr_in sClientAddress;
     socklen_t in_addrSize;
 
@@ -389,7 +377,10 @@ static ftp_result_t ftp_wait_for_connection(int32_t l_sd, int32_t *n_sd, uint32_
             ESP_LOGI(FTP_TAG, "Client IP: 0x%08"PRIx32, clientAddr.sin_addr.s_addr);
             *ip_addr = 0;
             for (int i = 0; i < n_if; i++) {
-                esp_netif_get_ip_info(net_if[i], &ip_info);
+                err = esp_netif_get_ip_info(net_if[i], &ip_info);
+                if (err == ESP_ERR_ESP_NETIF_INVALID_PARAMS)
+                    continue;
+
                 ESP_LOGI(FTP_TAG, "Adapter: 0x%08"PRIx32", 0x%08"PRIx32, ip_info.ip.addr, ip_info.netmask.addr);
                 if ((ip_info.ip.addr & ip_info.netmask.addr) == (ip_info.netmask.addr & clientAddr.sin_addr.s_addr)) {
                     *ip_addr = ip_info.ip.addr;
@@ -534,10 +525,10 @@ static void ftp_open_child(char *pwd, char *dir) {
     ESP_LOGI(FTP_TAG, "open_child: %s + %s", pwd, dir);
     if (strlen(dir) > 0) {
         if (dir[0] == '/') {
-            // ** absolute path
+            // absolute path
             strcpy(pwd, dir);
         } else {
-            // ** relative path
+            // relative path
             // add trailing '/' if needed
             if ((strlen(pwd) > 1) && (pwd[strlen(pwd) - 1] != '/') && (dir[0] != '/'))
                 strcat(pwd, "/");
@@ -554,7 +545,7 @@ static void ftp_close_child(char *pwd) {
     if (pwd[len - 1] == '/') {
         pwd[len - 1] = '\0';
         len--;
-        if ((len == 0) || (strcmp(pwd, FTP_MOUNT_POINT) == 0) || (strcmp(pwd, FTP_MOUNT_POINT) == 0)) {
+        if ((len == 0) || (strcmp(pwd, ftpserver_mount_point) == 0) || (strcmp(pwd, ftpserver_mount_point) == 0)) {
             strcpy(pwd, "/");
         }
     } else {
@@ -569,7 +560,7 @@ static void ftp_close_child(char *pwd) {
 
         if (len == 0) {
             strcpy(pwd, "/");
-        } else if ((strcmp(pwd, FTP_MOUNT_POINT) == 0) || (strcmp(pwd, FTP_MOUNT_POINT) == 0)) {
+        } else if ((strcmp(pwd, ftpserver_mount_point) == 0) || (strcmp(pwd, ftpserver_mount_point) == 0)) {
             strcat(pwd, "/");
         }
     }
@@ -660,8 +651,8 @@ static void ftp_process_cmd(void) {
         }
         char fullname[128];
         char fullname2[128];
-        strcpy(fullname, FTP_MOUNT_POINT);
-        strcpy(fullname2, FTP_MOUNT_POINT);
+        strcpy(fullname, ftpserver_mount_point);
+        strcpy(fullname2, ftpserver_mount_point);
 
         switch (cmd) {
             case E_FTP_CMD_FEAT:
@@ -754,14 +745,16 @@ static void ftp_process_cmd(void) {
                 break;
             case E_FTP_CMD_USER:
                 ftp_pop_param(&bufptr, ftp_scratch_buffer, true, true);
-                if (!memcmp(ftp_scratch_buffer, ftp_user, MAX(strlen(ftp_scratch_buffer), strlen(ftp_user)))) {
+                if (!memcmp(ftp_scratch_buffer, ftp_user,
+                        ((strlen(ftp_scratch_buffer)) > (strlen(ftp_user)) ? (strlen(ftp_scratch_buffer)) : (strlen(ftp_user))))) {
                     ftp_data.loggin.uservalid = true && (strlen(ftp_user) == strlen(ftp_scratch_buffer));
                 }
                 ftp_send_reply(331, NULL);
                 break;
             case E_FTP_CMD_PASS:
                 ftp_pop_param(&bufptr, ftp_scratch_buffer, true, true);
-                if (!memcmp(ftp_scratch_buffer, ftp_pass, MAX(strlen(ftp_scratch_buffer), strlen(ftp_pass))) && ftp_data.loggin.uservalid) {
+                if (!memcmp(ftp_scratch_buffer, ftp_pass,
+                        ((strlen(ftp_scratch_buffer)) > (strlen(ftp_pass)) ? (strlen(ftp_scratch_buffer)) : (strlen(ftp_pass)))) && ftp_data.loggin.uservalid) {
                     ftp_data.loggin.passvalid = true && (strlen(ftp_pass) == strlen(ftp_scratch_buffer));
                     if (ftp_data.loggin.passvalid) {
                         ftp_send_reply(230, NULL);
@@ -869,7 +862,6 @@ static void ftp_process_cmd(void) {
                     strcat(fullname, ftp_path);
                     ESP_LOGI(FTP_TAG, "E_FTP_CMD_DELE fullname=[%s]", fullname);
 
-                    //if (unlink(ftp_path) == 0) {
                     if (unlink(fullname) == 0) {
                         vTaskDelay(20 / portTICK_PERIOD_MS);
                         ftp_send_reply(250, NULL);
@@ -935,7 +927,6 @@ static void ftp_process_cmd(void) {
                 strcat(fullname2, ftp_path);
                 ESP_LOGI(FTP_TAG, "E_FTP_CMD_RNTO fullname2=[%s]", fullname2);
 
-                //if (rename((char *)ftp_data.dBuffer, ftp_path) == 0) {
                 if (rename(fullname, fullname2) == 0) {
                     ftp_send_reply(250, NULL);
                 } else {
@@ -974,7 +965,7 @@ static void ftp_wait_for_enabled(void) {
     }
 }
 
-void ftp_deinit(void) {
+void ftpserver_deinit(void) {
     if (ftp_path)
         free(ftp_path);
     if (ftp_cmd_buffer)
@@ -989,10 +980,10 @@ void ftp_deinit(void) {
     ftp_scratch_buffer = NULL;
 }
 
-bool ftp_init(void) {
+bool ftpserver_init(void) {
     ftp_stop = 0;
     // Allocate memory for the data buffer, and the file system structures (from the RTOS heap)
-    ftp_deinit();
+    ftpserver_deinit();
 
     memset(&ftp_data, 0, sizeof(ftp_data_t));
     ftp_data.dBuffer = malloc(ftp_buff_size + 1);
@@ -1028,7 +1019,7 @@ bool ftp_init(void) {
     return true;
 }
 
-int ftp_run(uint32_t elapsed) {
+int ftpserver_run(uint32_t elapsed) {
     if (ftp_stop)
         return -2;
 
@@ -1193,7 +1184,7 @@ int ftp_run(uint32_t elapsed) {
     return 0;
 }
 
-bool ftp_enable(void) {
+bool ftpserver_enable(void) {
     bool res = false;
     if (ftp_data.state == E_FTP_STE_DISABLED) {
         ftp_data.enabled = true;
@@ -1202,12 +1193,12 @@ bool ftp_enable(void) {
     return res;
 }
 
-bool ftp_isenabled(void) {
+bool ftpserver_isenabled(void) {
     bool res = (ftp_data.enabled == true);
     return res;
 }
 
-bool ftp_disable(void) {
+bool ftpserver_disable(void) {
     bool res = false;
     if (ftp_data.state == E_FTP_STE_READY) {
         _ftp_reset();
@@ -1218,19 +1209,19 @@ bool ftp_disable(void) {
     return res;
 }
 
-bool ftp_reset(void) {
+bool ftpserver_reset(void) {
     _ftp_reset();
     return true;
 }
 
-int ftp_getstate() {
+int ftpserver_getstate() {
     int fstate = ftp_data.state | (ftp_data.substate << 8);
     if ((ftp_data.state == E_FTP_STE_READY) && (ftp_data.c_sd > 0))
         fstate = E_FTP_STE_CONNECTED;
     return fstate;
 }
 
-bool ftp_terminate(void) {
+bool ftpserver_terminate(void) {
     bool res = false;
     if (ftp_data.state == E_FTP_STE_READY) {
         ftp_stop = 1;
@@ -1240,35 +1231,31 @@ bool ftp_terminate(void) {
     return res;
 }
 
-bool ftp_stop_requested(void) {
+bool ftpserver_stop_requested(void) {
     bool res = (ftp_stop == 1);
     return res;
 }
 
-void ftp_task(void *pvParameters) {
-    ESP_LOGI(FTP_TAG, "ftp_task start");
-    esp_log_level_set(FTP_TAG, ESP_LOG_WARN);
-    strcpy(ftp_user, CONFIG_FTP_USER);
-    strcpy(ftp_pass, CONFIG_FTP_PASSWORD);
-    ESP_LOGI(FTP_TAG, "ftp_user:[%s] ftp_pass:[%s]", ftp_user, ftp_pass);
+////////////////////////////////////////////////////////////////
 
+static void ftp_task(void *pvParameters) {
     uint64_t elapsed, time_ms = mp_hal_ticks_ms();
     // Initialize ftp, create rx buffer and mutex
-    if (!ftp_init()) {
+    if (!ftpserver_init()) {
         ESP_LOGE(FTP_TAG, "Init Error");
         vTaskDelete(NULL);
     }
 
     // We have network connection, enable ftp
-    ftp_enable();
+    ftpserver_enable();
 
     time_ms = mp_hal_ticks_ms();
     while (1) {
-    // Calculate time between two ftp_run() calls
+        // Calculate time between two ftp_run() calls
         elapsed = mp_hal_ticks_ms() - time_ms;
         time_ms = mp_hal_ticks_ms();
 
-        int res = ftp_run(elapsed);
+        int res = ftpserver_run(elapsed);
         if (res < 0) {
             if (res == -1) {
                 ESP_LOGE(FTP_TAG, "\nRun Error");
@@ -1283,4 +1270,21 @@ void ftp_task(void *pvParameters) {
 
     ESP_LOGW(FTP_TAG, "\nTask terminated!");
     vTaskDelete(NULL);
+}
+
+void ftpserver_start(const char *_ftp_user, const char *_ftp_password, const char *mount_point) {
+    ESP_LOGI(FTP_TAG, "ftp_task start");
+    strcpy(ftp_user, _ftp_user);
+    strcpy(ftp_pass, _ftp_password);
+    strcpy(ftpserver_mount_point, mount_point);
+    ESP_LOGI(FTP_TAG, "ftp_user:[%s] ftp_pass:[%s]", ftp_user, ftp_pass);
+
+    xTaskCreate(
+            ftp_task,    //
+            "ftpserver", //
+            1024 * 6,    //
+            NULL,        //
+            2,           //
+            NULL         //
+            );
 }

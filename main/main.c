@@ -30,7 +30,7 @@
 #include "esp_partition.h"
 #include "hal_fs.h"
 #include "hal_wifi.h"
-#include "esp32_ftp_server.h"
+#include "ftpserver.h"
 #include "microvium.h"
 
 #define MICROVIUM_HAL_WIFI
@@ -38,6 +38,7 @@
 
 static char TAG[] = "main";
 TaskHandle_t microviumtsk_handle;
+TaskHandle_t ftpservertsk_handle;
 
 #define WIFI_SSID "test"
 #define WIFI_PASS "test1234"
@@ -202,18 +203,11 @@ void app_main() {
     nvs_flash_init();
     fs_init();
 
-    printf("Connect WIFI\n");
+    ESP_LOGI(TAG, "Connect WIFI\n");
     wifi_connect_sta(WIFI_SSID, WIFI_PASS);
 
-    // Create FTP server task
-    xTaskCreate(
-            ftp_task,
-            "FTP",
-            1024 * 6,
-            NULL,
-            2,
-            NULL
-            );
+    ESP_LOGI(TAG, "Create FTP server task");
+    ftpserver_start("test", "test", "/littlefs");
 
     xTaskCreatePinnedToCore(
             microvium_task,
